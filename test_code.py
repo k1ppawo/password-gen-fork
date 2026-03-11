@@ -5,78 +5,72 @@ import time
 last_password = ""
 last_settings = ""
 
-
+LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'
+UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+DIGITS = '0123456789'
+SPECIALS = '!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
 
 MIN_LEN = 1      
 MAX_LEN = 50     
 
 def menu():
+    # реализует интерактивное консольное меню генератора паролей: 
+    # позволяет пользователю генерировать пароли с заданными настройками, 
+    # cохранять последний сгенерированный пароль в файл или выходить из программы
+
     global last_password, last_settings
     while True:
         print("\n___ Генератор паролей ___")
         print("1. Сгенерировать пароль")
         print("2. Сохранить последний пароль в файл")
         print("3. Выход")
-        choice = input("Выберите пункт: ")
-        
+        choice = input("\nВыберите пункт: ")
+
         if choice == "1":
             
-            len_str = input(f"Введите длину пароля (по умолчанию {8}): ")
+            len_str = input(f"\nВведите длину пароля (по умолчанию {8}): ")
             if len_str.strip() == "":
                 length = 8
             else:
-                length = int(len_str)  
-            
+                length = int(len_str)
+
             
             use_digits = input("Включить цифры? (y/n): ").lower() == 'y'
             use_specials = input("Включить спецсимволы? (y/n): ").lower() == 'y'
             use_uppercase = input("Включить заглавные буквы? (y/n): ").lower() == 'y'
+
             
-            
-            if not use_digits and not use_specials and not use_uppercase: 
-                password = generate_lower(length)
-                last_settings = "только строчные"
-            elif use_digits and not use_specials and not use_uppercase:
-                password = generate_lower_digits(length)
-                last_settings = "строчные + цифры"
-            elif not use_digits and use_specials and not use_uppercase:
-                password = generate_lower_specials(length)
-                last_settings = "строчные + спецсимволы"
-            elif not use_digits and not use_specials and use_uppercase:
-                password = generate_lower_upper(length)
-                last_settings = "строчные + заглавные"
-            elif use_digits and use_specials and not use_uppercase:
-                password = generate_lower_digits_specials(length)
-                last_settings = "строчные + цифры + спецсимволы"
-            elif use_digits and not use_specials and use_uppercase:
-                password = generate_lower_digits_upper(length)
-                last_settings = "строчные + цифры + заглавные"
-            elif not use_digits and use_specials and use_uppercase:
-                password = generate_lower_specials_upper(length)
-                last_settings = "строчные + спецсимволы + заглавные"
-            elif use_digits and use_specials and use_uppercase:
-                password = generate_all(length)
-                last_settings = "все символы"
-            else:
-                password = generate_lower(length)
-                last_settings = "только строчные (по умолчанию)"
-            
+            password = generate_password(length, use_uppercase, use_digits, use_specials)
             last_password = password
-            print(f"Сгенерированный пароль: {password}")
+
+            
+            settings_parts = []
+            if use_uppercase:
+                settings_parts.append("заглавные")
+            if use_digits:
+                settings_parts.append("цифры")
+            if use_specials:
+                settings_parts.append("спецсимволы")
+            if not settings_parts:
+                last_settings = "только строчные"
+            else:
+                last_settings = "строчные + " + " + ".join(settings_parts)
+
+            print(f"\nСгенерированный пароль: {password}")
             print(f"Настройки: {last_settings}")
-        
+
         elif choice == "2":
+            
             if last_password == "":
                 print("Сначала сгенерируйте пароль!")
             else:
-                filename = "passwords.txt"  
+                filename = "passwords.txt"
                 try:
-                    f = open(filename, "a")  
-                    f.write(f"{time.ctime()} - {last_password} ({last_settings})\n")
-                    f.close()
+                    with open(filename, "a") as f:
+                        f.write(f"{time.ctime()} - {last_password} ({last_settings})\n")
                     print(f"Пароль сохранён в файл {filename}")
                 except:
-                    print("Ошибка при сохранении в файл") 
+                    print("Ошибка при сохранении в файл")
         elif choice == "3":
             print("До свидания!")
             break
@@ -84,140 +78,21 @@ def menu():
             print("Неверный выбор. Попробуйте снова.")
 
 
-def generate_lower(length):
-    result = ""
-    for i in range(length):
-        char_code = random.randint(97, 122)
-        result += chr(char_code)
-    return result
+def generate_password(length, use_uppercase=False, use_digits=False, use_specials=False):
+    
+    # Генерирует пароль заданной длины из строчных букв (всегда) и,
+    # при необходимости, из заглавных букв, цифр и спецсимволов.
+    
+    chars = LOWERCASE
+    if use_uppercase:
+        chars += UPPERCASE
+    if use_digits:
+        chars += DIGITS
+    if use_specials:
+        chars += SPECIALS
 
-def generate_lower_digits(length):
-    result = ""
-    for i in range(length):
-        if random.randint(0, 1) == 0:
-            char_code = random.randint(97, 122)
-            result += chr(char_code)
-        else:
-            char_code = random.randint(48, 57) 
-            result += chr(char_code)
-    return result
-
-def generate_lower_specials(length):
-    result = ""
-    for i in range(length):
-        if random.randint(0, 1) == 0:
-            char_code = random.randint(97, 122)
-            result += chr(char_code)
-        else:
-            choice = random.randint(0, 3)
-            if choice == 0:
-                char_code = random.randint(33, 47)
-            elif choice == 1:
-                char_code = random.randint(58, 64)
-            elif choice == 2:
-                char_code = random.randint(91, 96)
-            else:
-                char_code = random.randint(123, 126)
-            result += chr(char_code)
-    return result
-
-def generate_lower_upper(length):
-    result = ""
-    for i in range(length):
-        if random.randint(0, 1) == 0:
-            char_code = random.randint(97, 122)
-            result += chr(char_code)
-        else:
-            char_code = random.randint(65, 90)  
-            result += chr(char_code)
-    return result
-
-def generate_lower_digits_specials(length):
-    result = ""
-    for i in range(length):
-        r = random.randint(0, 2) 
-        if r == 0:
-            char_code = random.randint(97, 122)
-            result += chr(char_code)
-        elif r == 1:
-            char_code = random.randint(48, 57)
-            result += chr(char_code)
-        else:
-            s = random.randint(0, 3)
-            if s == 0:
-                char_code = random.randint(33, 47)
-            elif s == 1:
-                char_code = random.randint(58, 64)
-            elif s == 2:
-                char_code = random.randint(91, 96)
-            else:
-                char_code = random.randint(123, 126)
-            result += chr(char_code)
-    return result
-
-def generate_lower_digits_upper(length):
-    result = ""
-    for i in range(length):
-        r = random.randint(0, 2)
-        if r == 0:
-            char_code = random.randint(97, 122)
-            result += chr(char_code)
-        elif r == 1:
-            char_code = random.randint(48, 57)
-            result += chr(char_code)
-        else:
-            char_code = random.randint(65, 90)
-            result += chr(char_code)
-    return result
-
-def generate_lower_specials_upper(length):
-    result = ""
-    for i in range(length):
-        r = random.randint(0, 2)
-        if r == 0:
-            char_code = random.randint(97, 122)
-            result += chr(char_code)
-        elif r == 1:
-            s = random.randint(0, 3)
-            if s == 0:
-                char_code = random.randint(33, 47)
-            elif s == 1:
-                char_code = random.randint(58, 64)
-            elif s == 2:
-                char_code = random.randint(91, 96)
-            else:
-                char_code = random.randint(123, 126)
-            result += chr(char_code)
-        else:
-            char_code = random.randint(65, 90)
-            result += chr(char_code)
-    return result
-
-def generate_all(length):
-    result = ""
-    for i in range(length):
-        r = random.randint(0, 3)  
-        if r == 0:
-            char_code = random.randint(97, 122)
-            result += chr(char_code)
-        elif r == 1:
-            char_code = random.randint(48, 57)
-            result += chr(char_code)
-        elif r == 2:
-            char_code = random.randint(65, 90)
-            result += chr(char_code)
-        else:
-            s = random.randint(0, 3)
-            if s == 0:
-                char_code = random.randint(33, 47)
-            elif s == 1:
-                char_code = random.randint(58, 64)
-            elif s == 2:
-                char_code = random.randint(91, 96)
-            else:
-                char_code = random.randint(123, 126)
-            result += chr(char_code)
-    return result
+    password = ''.join(random.choice(chars) for _ in range(length))
+    return password
 
 if __name__ == "__main__":
     menu()
