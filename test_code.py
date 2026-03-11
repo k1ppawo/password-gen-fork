@@ -10,8 +10,9 @@ UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 DIGITS = '0123456789'
 SPECIALS = '!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
 
-MIN_LEN = 1      
-MAX_LEN = 50     
+MIN_PASSWORD_LENGTH = 1
+MAX_PASSWORD_LENGTH = 50    
+DEFAULT_PASSWORD_LENGTH = 8
 
 def menu():
     # реализует интерактивное консольное меню генератора паролей: 
@@ -27,23 +28,19 @@ def menu():
         choice = input("\nВыберите пункт: ")
 
         if choice == "1":
-            
-            len_str = input(f"\nВведите длину пароля (по умолчанию {8}): ")
-            if len_str.strip() == "":
-                length = 8
-            else:
-                length = int(len_str)
-
-            
-            use_digits = input("Включить цифры? (y/n): ").lower() == 'y'
-            use_specials = input("Включить спецсимволы? (y/n): ").lower() == 'y'
-            use_uppercase = input("Включить заглавные буквы? (y/n): ").lower() == 'y'
-
-            
+            length = input_integer(
+                f"Введите длину пароля (от {MIN_PASSWORD_LENGTH} до {MAX_PASSWORD_LENGTH}, по умолчанию {DEFAULT_PASSWORD_LENGTH}): ",
+                default=DEFAULT_PASSWORD_LENGTH,
+                min_val=MIN_PASSWORD_LENGTH,
+                max_val=MAX_PASSWORD_LENGTH
+            )
+            use_digits = input_yes_no("Включить цифры? (y/n): ")
+            use_specials = input_yes_no("Включить спецсимволы? (y/n): ")
+            use_uppercase = input_yes_no("Включить заглавные буквы? (y/n): ")
+        
             password = generate_password(length, use_uppercase, use_digits, use_specials)
             last_password = password
-
-            
+        
             settings_parts = []
             if use_uppercase:
                 settings_parts.append("заглавные")
@@ -55,8 +52,8 @@ def menu():
                 last_settings = "только строчные"
             else:
                 last_settings = "строчные + " + " + ".join(settings_parts)
-
-            print(f"\nСгенерированный пароль: {password}")
+        
+            print(f"Сгенерированный пароль: {password}")
             print(f"Настройки: {last_settings}")
 
         elif choice == "2":
@@ -77,6 +74,36 @@ def menu():
         else:
             print("Неверный выбор. Попробуйте снова.")
 
+def input_integer(prompt, default, min_val, max_val):
+    # Запрашивает у пользователя целое число в диапазоне [min_val, max_val].
+    # При пустом вводе возвращает значение по умолчанию.
+    # При неверном вводе выводит сообщение и повторяет запрос.
+    while True:
+        user_input = input(prompt).strip()
+        if user_input == "":
+            return default
+        try:
+            value = int(user_input)
+            if min_val <= value <= max_val:
+                return value
+            else:
+                print(f"Ошибка: число должно быть от {min_val} до {max_val}.")
+        except ValueError:
+            print("Ошибка: введите целое число.")
+
+def input_yes_no(prompt): 
+    # Запрашивает у пользователя ответ 'y' или 'n'.
+    # Повторяет запрос до получения корректного ответа.
+    # Возвращает True для 'y', False для 'n'.
+    
+    while True:
+        answer = input(prompt).strip().lower()
+        if answer in ('y', 'yes', 'да'):
+            return True
+        elif answer in ('n', 'no', 'нет'):
+            return False
+        else:
+            print("Пожалуйста, введите 'y' или 'n'.")
 
 def generate_password(length, use_uppercase=False, use_digits=False, use_specials=False):
     

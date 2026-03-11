@@ -1,122 +1,80 @@
 import unittest
 from unittest.mock import patch, mock_open
-import random
 import string
-import tempfile
-import os
+import random
+import time
 
 
 import test_code as pwg
 
 
-class TestGeneratorFunctions(unittest.TestCase):
-    """Тесты для отдельных функций генерации паролей."""
+class TestGeneratePassword(unittest.TestCase):
+    """Тесты для функции generate_password."""
 
-    def test_generate_lower(self):
-        """Только строчные буквы."""
+    def test_only_lowercase(self):
+        """Генерация только из строчных букв."""
         length = 10
-        pwd = pwg.generate_lower(length)
+        pwd = pwg.generate_password(length)
         self.assertEqual(len(pwd), length)
-        for ch in pwd:
-            self.assertIn(ch, string.ascii_lowercase)
+        self.assertTrue(all(c in pwg.LOWERCASE for c in pwd))
 
-    def test_generate_lower_digits(self):
-        """Строчные + цифры."""
+    def test_with_uppercase(self):
+        """Добавление заглавных букв."""
         length = 15
-        pwd = pwg.generate_lower_digits(length)
+        pwd = pwg.generate_password(length, use_uppercase=True)
         self.assertEqual(len(pwd), length)
-        allowed = string.ascii_lowercase + string.digits
-        for ch in pwd:
-            self.assertIn(ch, allowed)
+        allowed = pwg.LOWERCASE + pwg.UPPERCASE
+        self.assertTrue(all(c in allowed for c in pwd))
 
-    def test_generate_lower_specials(self):
-        """Строчные + спецсимволы."""
+    def test_with_digits(self):
+        """Добавление цифр."""
         length = 12
-        pwd = pwg.generate_lower_specials(length)
+        pwd = pwg.generate_password(length, use_digits=True)
         self.assertEqual(len(pwd), length)
-        allowed = string.ascii_lowercase + ''.join(chr(i) for i in range(33, 48)) \
-                  + ''.join(chr(i) for i in range(58, 65)) \
-                  + ''.join(chr(i) for i in range(91, 97)) \
-                  + ''.join(chr(i) for i in range(123, 127))
-        for ch in pwd:
-            self.assertIn(ch, allowed)
+        allowed = pwg.LOWERCASE + pwg.DIGITS
+        self.assertTrue(all(c in allowed for c in pwd))
 
-    def test_generate_lower_upper(self):
-        """Строчные + заглавные."""
-        length = 20
-        pwd = pwg.generate_lower_upper(length)
-        self.assertEqual(len(pwd), length)
-        allowed = string.ascii_letters
-        for ch in pwd:
-            self.assertIn(ch, allowed)
-
-    def test_generate_lower_digits_specials(self):
-        """Строчные + цифры + спецсимволы."""
+    def test_with_specials(self):
+        """Добавление спецсимволов."""
         length = 8
-        pwd = pwg.generate_lower_digits_specials(length)
+        pwd = pwg.generate_password(length, use_specials=True)
         self.assertEqual(len(pwd), length)
-        allowed = string.ascii_lowercase + string.digits + \
-                  ''.join(chr(i) for i in range(33, 48)) + \
-                  ''.join(chr(i) for i in range(58, 65)) + \
-                  ''.join(chr(i) for i in range(91, 97)) + \
-                  ''.join(chr(i) for i in range(123, 127))
-        for ch in pwd:
-            self.assertIn(ch, allowed)
+        allowed = pwg.LOWERCASE + pwg.SPECIALS
+        self.assertTrue(all(c in allowed for c in pwd))
 
-    def test_generate_lower_digits_upper(self):
-        """Строчные + цифры + заглавные."""
-        length = 10
-        pwd = pwg.generate_lower_digits_upper(length)
-        self.assertEqual(len(pwd), length)
-        allowed = string.ascii_letters + string.digits
-        for ch in pwd:
-            self.assertIn(ch, allowed)
-
-    def test_generate_lower_specials_upper(self):
-        """Строчные + спецсимволы + заглавные."""
-        length = 10
-        pwd = pwg.generate_lower_specials_upper(length)
-        self.assertEqual(len(pwd), length)
-        allowed = string.ascii_letters + \
-                  ''.join(chr(i) for i in range(33, 48)) + \
-                  ''.join(chr(i) for i in range(58, 65)) + \
-                  ''.join(chr(i) for i in range(91, 97)) + \
-                  ''.join(chr(i) for i in range(123, 127))
-        for ch in pwd:
-            self.assertIn(ch, allowed)
-
-    def test_generate_all(self):
+    def test_all_options(self):
         """Все типы символов."""
-        length = 15
-        pwd = pwg.generate_all(length)
+        length = 20
+        pwd = pwg.generate_password(length, use_uppercase=True, use_digits=True, use_specials=True)
         self.assertEqual(len(pwd), length)
-        allowed = string.ascii_letters + string.digits + \
-                  ''.join(chr(i) for i in range(33, 48)) + \
-                  ''.join(chr(i) for i in range(58, 65)) + \
-                  ''.join(chr(i) for i in range(91, 97)) + \
-                  ''.join(chr(i) for i in range(123, 127))
-        for ch in pwd:
-            self.assertIn(ch, allowed)
+        allowed = pwg.LOWERCASE + pwg.UPPERCASE + pwg.DIGITS + pwg.SPECIALS
+        self.assertTrue(all(c in allowed for c in pwd))
 
-    def test_all_functions_different_outputs(self):
-        """Проверка, что при одном seed функции дают разные результаты."""
+    def test_different_lengths(self):
+        """Проверка для разных длин."""
+        for length in [1, 5, 10, 50]:
+            pwd = pwg.generate_password(length)
+            self.assertEqual(len(pwd), length)
+
+    def test_randomness(self):
+        """Проверка, что при фиксированном seed результат предсказуем."""
         random.seed(42)
-        pwd1 = pwg.generate_lower(10)
+        pwd1 = pwg.generate_password(10, use_uppercase=True, use_digits=True)
         random.seed(42)
-        pwd2 = pwg.generate_lower_digits(10)
-        self.assertNotEqual(pwd1, pwd2)
+        pwd2 = pwg.generate_password(10, use_uppercase=True, use_digits=True)
+        self.assertEqual(pwd1, pwd2)
 
 
-class TestGlobalState(unittest.TestCase):
-    """Тесты для глобальных переменных last_password и last_settings."""
+class TestMenuGlobalState(unittest.TestCase):
+    """Тесты для глобальных переменных last_password и last_settings через меню."""
 
     def setUp(self):
         pwg.last_password = ""
         pwg.last_settings = ""
 
     @patch('builtins.input')
-    def test_menu_generate_lower_only(self, mock_input):
-        """Выбор только строчных (все ответы 'n')."""
+    def test_generate_only_lowercase(self, mock_input):
+        """Генерация только строчных (все ответы 'n')."""
         mock_input.side_effect = ["1", "", "n", "n", "n", "3"]
         with patch('builtins.print'):
             pwg.menu()
@@ -124,35 +82,46 @@ class TestGlobalState(unittest.TestCase):
         self.assertEqual(pwg.last_settings, "только строчные")
 
     @patch('builtins.input')
-    def test_menu_generate_all(self, mock_input):
-        """Все опции включены (все ответы 'y')."""
+    def test_generate_all_options(self, mock_input):
+        """Генерация со всеми опциями."""
         mock_input.side_effect = ["1", "12", "y", "y", "y", "3"]
         with patch('builtins.print'):
             pwg.menu()
         self.assertEqual(len(pwg.last_password), 12)
-        self.assertEqual(pwg.last_settings, "все символы")
+        self.assertEqual(pwg.last_settings, "строчные + заглавные + цифры + спецсимволы")
 
     @patch('builtins.input')
-    def test_menu_generate_digits_specials(self, mock_input):
-        """Только цифры и спецсимволы (без заглавных)."""
-        mock_input.side_effect = ["1", "8", "y", "y", "n", "3"]
+    def test_generate_uppercase_and_digits(self, mock_input):
+        """Генерация с заглавными и цифрами."""
+        # Порядок: use_digits, use_specials, use_uppercase
+        mock_input.side_effect = ["1", "8", "y", "n", "y", "3"]
         with patch('builtins.print'):
             pwg.menu()
-        self.assertEqual(pwg.last_settings, "строчные + цифры + спецсимволы")
+        self.assertEqual(pwg.last_settings, "строчные + заглавные + цифры")
+
+    @patch('builtins.input')
+    def test_last_password_updated(self, mock_input):
+        """Проверка, что last_password обновляется при генерации."""
+        mock_input.side_effect = ["1", "5", "n", "n", "n", "3"]
+        with patch('builtins.print'):
+            pwg.menu()
+        self.assertNotEqual(pwg.last_password, "")
 
 
 class TestFileSaving(unittest.TestCase):
     """Тесты для сохранения в файл."""
 
     def setUp(self):
+        # По умолчанию ставим непустой пароль, чтобы явно не мешал
+        # Но в тестах, где нужен пустой, будем сбрасывать отдельно
         pwg.last_password = "testpass"
         pwg.last_settings = "тестовый пароль"
 
     @patch('builtins.input')
     @patch("builtins.open", new_callable=mock_open)
-    def test_menu_save_after_generation(self, mock_file, mock_input):
-        """Генерация, затем сохранение."""
-        pwg.last_password = ""  # сброс
+    def test_save_success(self, mock_file, mock_input):
+        """Успешное сохранение после генерации."""
+        pwg.last_password = ""  # начинаем с пустого, чтобы генерация точно произошла
         mock_input.side_effect = ["1", "5", "n", "n", "n", "2", "3"]
         with patch('builtins.print'):
             pwg.menu()
@@ -164,20 +133,29 @@ class TestFileSaving(unittest.TestCase):
 
     @patch('builtins.input')
     @patch("builtins.open", side_effect=IOError("Disk error"))
-    def test_menu_save_io_error(self, mock_file, mock_input):
+    def test_save_io_error(self, mock_file, mock_input):
         """Ошибка ввода-вывода при сохранении."""
-        pwg.last_password = ""  # сброс
+        pwg.last_password = ""  # сброс, чтобы генерация произошла
         mock_input.side_effect = ["1", "5", "n", "n", "n", "2", "3"]
         with patch('builtins.print') as mock_print:
             pwg.menu()
         mock_print.assert_any_call("Ошибка при сохранении в файл")
 
+    @patch('builtins.input')
+    def test_save_without_generation(self, mock_input):
+        """Попытка сохранить без предварительной генерации."""
+        pwg.last_password = ""  # явно обнуляем, чтобы условие сработало
+        mock_input.side_effect = ["2", "3"]
+        with patch('builtins.print') as mock_print:
+            pwg.menu()
+        mock_print.assert_any_call("Сначала сгенерируйте пароль!")
+
 
 class TestInputHandling(unittest.TestCase):
-    """Тесты для ввода данных (без меню)."""
+    """Тесты для обработки некорректного ввода."""
 
     @patch('builtins.input')
-    def test_menu_invalid_choice(self, mock_input):
+    def test_invalid_menu_choice(self, mock_input):
         """Неверный пункт меню."""
         mock_input.side_effect = ["99", "3"]
         with patch('builtins.print') as mock_print:
@@ -185,8 +163,8 @@ class TestInputHandling(unittest.TestCase):
         mock_print.assert_any_call("Неверный выбор. Попробуйте снова.")
 
     @patch('builtins.input')
-    def test_menu_length_non_numeric(self, mock_input):
-        """Ввод нечисловой длины (должно вызвать ValueError)."""
+    def test_non_numeric_length(self, mock_input):
+        """Ввод нечисловой длины (должен вызвать ValueError)."""
         mock_input.side_effect = ["1", "abc", "3"]
         with self.assertRaises(ValueError):
             pwg.menu()
