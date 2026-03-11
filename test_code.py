@@ -83,16 +83,15 @@ class PasswordManager:
     def save_to_file(self, filename="passwords.txt"):
         # Сохраняет пароль в файл
         if not self.last_password:
-            return False, "Сначала сгенерируйте пароль!"
-        
+            return "Сначала сгенерируйте пароль!"
         try:
             with open(filename, "a") as f:
                 f.write(f"{time.ctime()} - {self.last_password} ({self.last_settings})\n")
-            return True, f"Пароль сохранён в файл {filename}"
+            return f"Пароль сохранён в файл {filename}"
         except IOError as e:
-            return False, f"Ошибка: {e}"
+            return f"Ошибка ввода-вывода: {e}"
         except Exception as e:
-            return False, f"Неожиданная ошибка: {e}"
+            return f"Неожиданная ошибка: {e}"
                 
 def menu(manager):
     # Интерактивное меню
@@ -122,8 +121,7 @@ def menu(manager):
                 print(f"Ошибка: {e}")
 
         elif choice == "2":
-            success, message = manager.save_to_file()
-            print(f"{'✅' if success else '❌'} {message}")
+            print(manager.save_to_file())
 
         elif choice == "3":
             print("До свидания!")
